@@ -1,0 +1,4 @@
+2024-12-03 01:01:22 - Bạn: I love you
+2024-12-03 01:01:22 - Bot: Tôi đã nhận được tin nhắn của bạn!
+2024-12-03 08:33:40 - Bạn: I love u
+2024-12-03 08:33:40 - Bot: Tôi đã nhận được tin nhắn của bạn!
