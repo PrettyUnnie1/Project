@@ -61,15 +61,15 @@ class ChatBox(QMainWindow):
             self.message_input.clear()
 
             # (Tùy chọn) Thêm phản hồi tự động
-            bot_reply = "Tôi đã nhận được tin nhắn của bạn!"
-            self.chat_display.append(f"Bot: {bot_reply}\n")
-            self.save_message_to_file("Bot", bot_reply)
+            #bot_reply = "Tôi đã nhận được tin nhắn của bạn!"
+            #self.chat_display.append(f"Bot: {bot_reply}\n")
+            #self.save_message_to_file("Bot", bot_reply)
 
     def save_message_to_file(self, sender, message):
-        """Lưu tin nhắn vào file txt."""
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        with open("chat_log.txt", "a", encoding="utf-8") as file:
-            file.write(f"{timestamp} - {sender}: {message}\n")
+        """Lưu tin nhắn vào file txt trong thư mục text, chỉ ghi phần message."""
+        print(message)  # In tin nhắn ra màn hình
+        with open("tests/chat_log.txt", "a", encoding="utf-8") as file:
+            file.write(f"{message}\n")
 
 
 if __name__ == "__main__":

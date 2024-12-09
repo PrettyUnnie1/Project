@@ -38,9 +38,20 @@ def runTest():
             print(f"Input rejected: {msg}")
             exit(1)  # Exit the program with an error
 
-    filename = '001.txt'
+    filename = 'chat_log.txt'
     inputFile = os.path.join(DIR, './tests', filename)    
+    try:
+        with open(inputFile, 'r', encoding='utf-8') as file:
+            lines = file.readlines()
+            if not lines:
+                print("Input file is empty.")
+                return
+            last_line = lines[-1].strip()
+    except FileNotFoundError:
+        print(f"File not found: {inputFile}")
+        return
 
+    print(f"Last line from input: {last_line}")
     # test
     input_stream = FileStream(inputFile)
     lexer = SampleLexer(input_stream)
