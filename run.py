@@ -1,27 +1,115 @@
+# run.py
 import sys
 import os
 import subprocess
-from antlr4 import *
-from PyQt5.QtWidgets import QApplication
-from UI import ChatBox  # Assuming ChatBox is in the same directory
+from PyQt5.QtWidgets import (
+    QApplication,
+    QMainWindow,
+    QVBoxLayout,
+    QHBoxLayout,
+    QTextEdit,
+    QLineEdit,
+    QPushButton,
+    QWidget,
+)
+from PyQt5.QtCore import Qt
+from datetime import datetime
+from sentiment_analyzer import SentimentAnalyzer  # Import the sentiment analyzer
 
-# Define your variables
-DIR = os.path.dirname(os.path.abspath(__file__))
-ANTLR_JAR = 'C:\antlr\antlr4-4.9.2-complete.jar'
-CPL_Dest = 'CompiledFiles'
-SRC = 'Sample.g4'
-TESTS = os.path.join(DIR, './tests')
+class ChatBox(QMainWindow):
+    def __init__(self):
+        super().__init__()
 
+        # Initialize the sentiment analyzer
+        self.sentiment_analyzer = SentimentAnalyzer()
 
-def print_usage():
-    print('python Hello.py gen')
-    print('python Hello.py test')
+        # Thiết lập cửa sổ chính
+        self.setWindowTitle("Chat Box")
+        self.setGeometry(100, 100, 400, 500)
 
-def print_break():
-    print('-----------------------------------------------')
+        # Tạo widget chính
+        self.central_widget = QWidget()
+        self.setCentralWidget(self.central_widget)
+
+        # Tạo layout chính
+        self.layout = QVBoxLayout()
+        self.central_widget.setLayout(self.layout)
+
+        # Khung hiển thị tin nhắn
+        self.chat_display = QTextEdit()
+        self.chat_display.setReadOnly(True)
+        self.layout.addWidget(self.chat_display)
+
+        # Khung nhập liệu và nút gửi
+        input_layout = QHBoxLayout()
+        self.message_input = QLineEdit()
+        self.message_input.setPlaceholderText("Nhập tin nhắn...")
+        input_layout.addWidget(self.message_input)
+
+        self.send_button = QPushButton("Gửi")
+        input_layout.addWidget(self.send_button)
+
+        self.layout.addLayout(input_layout)
+
+        # Kết nối sự kiện
+        self.send_button.clicked.connect(self.send_message)
+        self.message_input.returnPressed.connect(self.send_message)
+
+    def send_message(self):
+        """Hàm xử lý khi gửi tin nhắn."""
+        user_message = self.message_input.text().strip()  # Lấy nội dung trong khung chat
+        if user_message:
+            # Hiển thị tin nhắn trong khung chat
+            self.chat_display.append(f"Bạn: {user_message}")
+            # Ghi tin nhắn vào file
+            self.save_message_to_file("Bạn", user_message)
+            # Xóa nội dung trong khung nhập
+            self.message_input.clear()
+
+            # Phân tích cảm xúc của tin nhắn người dùng
+            sentiment = self.sentiment_analyzer.analyze(user_message)
+
+            # Tạo phản hồi dựa trên cảm xúc
+            bot_reply = self.generate_bot_reply(sentiment)
+            self.chat_display.append(f"Bot: {bot_reply}\n")
+            self.save_message_to_file("Bot", bot_reply)
+
+    def generate_bot_reply(self, sentiment):
+        """Tạo phản hồi của bot dựa trên cảm xúc."""
+        if sentiment == "Positive":
+            return "Positive! 😊"
+        elif sentiment == "Negative":
+            return "Negative. 😔"
+        elif sentiment == "Mixed":
+            return "Mixed! 🤔"
+        elif sentiment == "Neutral":
+            return "Neutral. 😊"
+        else:
+            return "I don't understand your emotion. 🤷‍♂️"
+
+    def save_message_to_file(self, sender, message):
+        """Lưu tin nhắn vào file txt."""
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        with open("chat_log.txt", "a", encoding="utf-8") as file:
+            file.write(f"{timestamp} - {sender}: {message}\n")
 
 def generate_antlr_to_python():
     """Function to generate ANTLR Lexer, Parser, and Listener."""
+    # Define paths
+    DIR = os.path.dirname(os.path.abspath(__file__))
+    ANTLR_JAR = r'D:\antlr\antlr4-4.9.2-complete.jar'  # Update this path if necessary
+    CPL_Dest = os.path.join(DIR, 'CompiledFiles')
+    SRC = os.path.join(DIR, 'Sample.g4')
+
+    # Check if ANTLR_JAR exists
+    if not os.path.isfile(ANTLR_JAR):
+        print(f"Error: ANTLR JAR not found at {ANTLR_JAR}. Please check the path.")
+        sys.exit(1)
+
+    # Create CompiledFiles directory if it doesn't exist
+    if not os.path.exists(CPL_Dest):
+        os.makedirs(CPL_Dest)
+
     print('Running ANTLR4...')
     cmd = [
         'java',
@@ -32,87 +120,32 @@ def generate_antlr_to_python():
         '-Dlanguage=Python3',
         SRC
     ]
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    if result.returncode == 0:
-        print('ANTLR4 generated Lexer, Parser, and Listener successfully.')
-    else:
-        print('Error generating Lexer, Parser, and Listener:')
-        print(result.stderr)
-    print_break()
-
-def run_test():
-    """Function to run test cases."""
-    print('Running testcases...')
-
-    from CompiledFiles.SampleLexer import SampleLexer
-    from CompiledFiles.SampleParser import SampleParser
-    from antlr4.error.ErrorListener import ErrorListener
-
-    class CustomErrorListener(ErrorListener):
-        def syntaxError(self, recognizer, offendingSymbol, line, column, msg, e):
-            print(f"Input rejected: {msg}")
-            exit(1)  # Exit the program with an error
-
-    filename = '001.txt'
-    input_file = os.path.join(DIR, './tests', filename)
-
-    # Test
-    input_stream = FileStream(input_file)
-    lexer = SampleLexer(input_stream)
-    stream = CommonTokenStream(lexer)
-    parser = SampleParser(stream)
-    tree = parser.program()  # Start parsing at the `program` rule
-
-    # Get all tokens
-    tokens = lexer.getAllTokens()
-
-    # Print all tokens
-    print("Tokens from input:")
-    for token in tokens:
-        print(f"Token: {token.text}")
-
-    # Print the parse tree (for debugging)
-    print(tree.toStringTree(recog=parser))
-
-    # Reset the input stream for parsing and catch the error
-    lexer = SampleLexer(FileStream(input_file))
-    token_stream = CommonTokenStream(lexer)
-
-    parser = SampleParser(token_stream)
-    parser.removeErrorListeners()
-    parser.addErrorListener(CustomErrorListener())
     try:
-        parser.program()
-        print("Input accepted")
-    except SystemExit:
-        pass
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        print('ANTLR4 generated Lexer, Parser, and Listener successfully.')
+    except subprocess.CalledProcessError as e:
+        print('Error generating Lexer, Parser, and Listener:')
+        print(e.stderr)
+        sys.exit(1)
+    print('-----------------------------------------------')
 
-    print_break()
-    print('Run tests completely')
-
-def main(argv):
-    print('Complete jar file ANTLR  :  ' + str(ANTLR_JAR))
-    print('Length of arguments      :  ' + str(len(argv)))
-    print_break()
-
-    if len(argv) < 1:
-        print_usage()
-    elif argv[0] == 'gen':
+def main():
+    # Parse command-line arguments
+    if len(sys.argv) > 1 and sys.argv[1].lower() == 'gen':
+        # User requested to generate ANTLR files
         generate_antlr_to_python()
-    elif argv[0] == 'test':
-        run_test()
-    elif argv[0] == 'run':
-        # Initialize and run the PyQt5 application
-        if not os.path.exists(CPL_Dest):
-            print("CompiledFiles directory not found. Generating ANTLR files...")
-            generate_antlr_to_python()
+        sys.exit(0)  # Exit after generation
 
-        app = QApplication(sys.argv)
-        window = ChatBox()
-        window.show()
-        sys.exit(app.exec_())
-    else:
-        print_usage()
+    # Check if 'CompiledFiles' directory exists
+    if not os.path.exists('CompiledFiles'):
+        print("CompiledFiles directory not found. Generating ANTLR files...")
+        generate_antlr_to_python()
 
-if __name__ == '__main__':
-    main(sys.argv[1:])
+    # Initialize and run the PyQt5 application
+    app = QApplication(sys.argv)
+    window = ChatBox()
+    window.show()
+    sys.exit(app.exec_())
+
+if __name__ == "__main__":
+    main()
