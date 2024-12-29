@@ -97,9 +97,18 @@ def generate_antlr_to_python():
     """Function to generate ANTLR Lexer, Parser, and Listener."""
     # Define paths
     DIR = os.path.dirname(os.path.abspath(__file__))
-    ANTLR_JAR = r'D:\antlr\antlr4-4.9.2-complete.jar'
-    CPL_Dest = 'CompiledFiles'
-    SRC = 'Sample.g4'
+    ANTLR_JAR = r'D:\antlr\antlr4-4.9.2-complete.jar'  # Update this path if necessary
+    CPL_Dest = os.path.join(DIR, 'CompiledFiles')
+    SRC = os.path.join(DIR, 'Sample.g4')
+
+    # Check if ANTLR_JAR exists
+    if not os.path.isfile(ANTLR_JAR):
+        print(f"Error: ANTLR JAR not found at {ANTLR_JAR}. Please check the path.")
+        sys.exit(1)
+
+    # Create CompiledFiles directory if it doesn't exist
+    if not os.path.exists(CPL_Dest):
+        os.makedirs(CPL_Dest)
 
     print('Running ANTLR4...')
     cmd = [
@@ -111,20 +120,27 @@ def generate_antlr_to_python():
         '-Dlanguage=Python3',
         SRC
     ]
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    if result.returncode == 0:
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         print('ANTLR4 generated Lexer, Parser, and Listener successfully.')
-    else:
+    except subprocess.CalledProcessError as e:
         print('Error generating Lexer, Parser, and Listener:')
-        print(result.stderr)
+        print(e.stderr)
+        sys.exit(1)
     print('-----------------------------------------------')
 
 def main():
+    # Parse command-line arguments
+    if len(sys.argv) > 1 and sys.argv[1].lower() == 'gen':
+        # User requested to generate ANTLR files
+        generate_antlr_to_python()
+        sys.exit(0)  # Exit after generation
+
     # Check if 'CompiledFiles' directory exists
     if not os.path.exists('CompiledFiles'):
         print("CompiledFiles directory not found. Generating ANTLR files...")
         generate_antlr_to_python()
-    
+
     # Initialize and run the PyQt5 application
     app = QApplication(sys.argv)
     window = ChatBox()
